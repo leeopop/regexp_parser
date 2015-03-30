@@ -68,6 +68,7 @@ charset:
 		ret->data = 0;
 		ret->type = CHARSET;
 		ret->child = $2;
+		$$ = ret;
 	}
 	|
 	'[' '^' vocabulary_list ']'
@@ -76,6 +77,7 @@ charset:
 		ret->data = 0;
 		ret->type = NEGATIVE_CHARSET;
 		ret->child = $3;
+		$$ = ret;
 	}
 	|
 	'[' ']'
