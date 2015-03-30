@@ -1,13 +1,14 @@
 LEX=flex
 YACC=bison
 
-all: regexp_yacc.c regexp_yacc.h regexp_lex.c regexp_lex.h
+GRAMMAR_DIR=$(ROOT_DIR)/grammar
 
-clean:
-	rm -rf *.c *.h *.o
+GRAMMAR_SRC+=$(GRAMMAR_DIR)/regexp_yacc.c $(GRAMMAR_DIR)/regexp_yacc.h $(GRAMMAR_DIR)/regexp_lex.c $(GRAMMAR_DIR)/regexp_lex.h
+CLEAN_FILE+= $(GRAMMAR_DIR)/*.c $(GRAMMAR_DIR)/*.h $(GRAMMAR_DIR)/*.o
 
-regexp_yacc.c regexp_yacc.h: regexp.y
-	$(YACC) --defines=regexp_yacc.h --output=regexp_yacc.c regexp.y
+
+$(GRAMMAR_DIR)/regexp_yacc.c $(GRAMMAR_DIR)/regexp_yacc.h: $(GRAMMAR_DIR)/regexp.y
+	$(YACC) --defines=$(GRAMMAR_DIR)/regexp_yacc.h --output=$(GRAMMAR_DIR)/regexp_yacc.c $(GRAMMAR_DIR)/regexp.y
 	
-regexp_lex.c regexp_lex.h: regexp.l
-	$(LEX) --header-file=regexp_lex.h --outfile=regexp_lex.c -Cr regexp.l
+$(GRAMMAR_DIR)/regexp_lex.c $(GRAMMAR_DIR)/regexp_lex.h: $(GRAMMAR_DIR)/regexp.l
+	$(LEX) --header-file=$(GRAMMAR_DIR)/regexp_lex.h --outfile=$(GRAMMAR_DIR)/regexp_lex.c -Cr $(GRAMMAR_DIR)/regexp.l

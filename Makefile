@@ -1,4 +1,8 @@
-GRAMMAR_DIR=grammar
+ROOT_DIR=$(CURDIR)
 
-all:
-	@$(MAKE) --directory=$(GRAMMAR_DIR) all
+include grammar/Makefile
+
+clean:
+	rm -rf $(CLEAN_FILE)
+
+all: $(GRAMMAR_SRC)
