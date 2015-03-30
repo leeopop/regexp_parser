@@ -159,7 +159,7 @@ regular_term_child:
 		$$ = $1;
 	}
 	|
-	regular_term_child regular_factor
+	regular_factor regular_term_child
 	{
 		assert($1->sibling == NULL);
 		$1->sibling = $2;
