@@ -110,33 +110,33 @@ private:
 		case VOCABULARY:
 		{
 			char buf[128];
-			snprintf(buf, sizeof(buf), "V: %c", currentNode->data);
+			snprintf(buf, sizeof(buf), "Verb[%c]", currentNode->data);
 			name = std::string(buf);
 			break;
 		}
 		case CONCAT:
 		{
-			name = std::string("OPERATION: CONCAT");
+			name = std::string("<CONCAT>");
 			break;
 		}
 		case UNION:
 		{
-			name = std::string("OPERATION: UNION");
+			name = std::string("<UNION[|]>");
 			break;
 		}
 		case CLOSURE:
 		{
-			name = std::string("OPERATION: CLOSURE*");
+			name = std::string("<CLOSURE[*]>");
 			break;
 		}
 		case CLOSURE_LEAST_ONCE:
 		{
-			name = std::string("OPERATION: CLOSURE+");
+			name = std::string("<CLOSURE[+]>");
 			break;
 		}
 		case CLOSURE_ONCE:
 		{
-			name = std::string("OPERATION: CLOSURE?");
+			name = std::string("<CLOSURE[?]>");
 			break;
 		}
 		case EPSILON:
