@@ -86,7 +86,7 @@ public:
 
 	void printParseTree(std::ostream& out)
 	{
-		out<<"graph RegularParseTree {"<<std::endl;
+		out<<"digraph RegularParseTree {"<<std::endl;
 		for(auto node : allNode)
 		{
 			out<<"Node"<<node->getIndex()<<"\t[label=\""<<node->getNodeName()<<"\"];"<<std::endl;
