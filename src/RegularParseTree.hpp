@@ -31,7 +31,6 @@ public:
 	TreeNode(const std::string& name, int index)
 	{
 		nodeName = std::string(name);
-		std::cout<<nodeName<<std::endl;
 		this->index = index;
 	}
 	virtual ~TreeNode()
