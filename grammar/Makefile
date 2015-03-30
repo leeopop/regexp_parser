@@ -1,5 +1,3 @@
-LEX=flex
-YACC=bison
 
 GRAMMAR_DIR=$(ROOT_DIR)/grammar
 
@@ -12,3 +10,6 @@ $(GRAMMAR_DIR)/regexp_yacc.c $(GRAMMAR_DIR)/regexp_yacc.h: $(GRAMMAR_DIR)/regexp
 	
 $(GRAMMAR_DIR)/regexp_lex.c $(GRAMMAR_DIR)/regexp_lex.h: $(GRAMMAR_DIR)/regexp.l
 	$(LEX) --header-file=$(GRAMMAR_DIR)/regexp_lex.h --outfile=$(GRAMMAR_DIR)/regexp_lex.c -Cr $(GRAMMAR_DIR)/regexp.l
+	
+
+SRCS+= $(GRAMMAR_SRC)
