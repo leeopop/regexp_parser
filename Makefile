@@ -5,10 +5,11 @@ CFLAGS= -g -O0
 LEX=flex
 YACC=bison
 
-INCLUDES+= -I$(ROOT_DIR)/grammar
+INCLUDES+= -I$(ROOT_DIR)/grammar -I$(ROOT_DIR)/include
 LIBS+= 
 
 CXXFLAGS+= $(INCLUDES)
+CFLAGS+= $(INCLUDES)
 
 BUILD_DIR=build
 PROGRAM=regexp
