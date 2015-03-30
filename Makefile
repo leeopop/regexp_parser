@@ -1,7 +1,7 @@
 ROOT_DIR=$(CURDIR)
 CXX+= -std=c++11
 CXXFLAGS= -g -O0 -Wall
-CFLAGS= -g -O0 -Wall
+CFLAGS= -g -O0
 LEX=flex
 YACC=bison
 
