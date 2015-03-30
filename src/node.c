@@ -10,6 +10,7 @@
 #include <stdlib.h>
 
 static Node* head = 0;
+Node* last_accept_node = 0;
 
 Node* makeNode(void)
 {
@@ -31,4 +32,5 @@ void clearNode(void)
 		free(head);
 		head = next;
 	}
+	last_accept_node = 0;
 }

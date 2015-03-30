@@ -1,9 +1,12 @@
+%code requires
+{
+#include "node.h"
+#define YYSTYPE Node*
+}
 
 %{
-#include "node.h"
 #include "regexp_lex.h"
 #include <assert.h>
-#define YYSTYPE Node*
 int yyerror(const char* val);
 
 %}
@@ -18,6 +21,7 @@ including_empty:
 	regular_expression
 	{
 		$$ = $1;
+		last_accept_node = $$;
 	}
 	|
 	{
@@ -25,6 +29,7 @@ including_empty:
 		ret->data = 0;
 		ret->type = EMPTY;
 		$$ = ret;
+		last_accept_node = $$;
 	}
 	;
 

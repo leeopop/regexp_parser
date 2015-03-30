@@ -14,7 +14,18 @@ extern "C"
 
 int main()
 {
-	printf("%d\n", yyparse());
+	while(1)
+	{
+		yyrestart(stdin);
+
+		printf("%d\n", yyparse());
+		printf("%p\n", last_accept_node);
+		bool stop = last_accept_node->type == NodeType::EMPTY;
+		clearNode();
+		yylex_destroy();
+		if(stop)
+			break;
+	}
 	/*
 	while(true)
 	{

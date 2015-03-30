@@ -37,6 +37,7 @@ typedef struct node_t
 
 Node* makeNode(void);
 void clearNode(void);
+extern Node* last_accept_node;
 
 #ifdef __cplusplus
 }
