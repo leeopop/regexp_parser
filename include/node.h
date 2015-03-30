@@ -29,6 +29,7 @@ enum NodeType
 typedef struct node_t
 {
 	enum NodeType type;
+	int index;
 	char data;
 	struct node_t* child;
 	struct node_t* sibling;

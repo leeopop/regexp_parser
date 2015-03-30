@@ -5,7 +5,8 @@
 BACKSLASH [\\]
 OPERATOR [\|\+\.\*\(\)\[\]\"\'\?\^]
 SPECIAL [abfnrtv\\]
-NORMAL_WORD [A-Za-z0-9 ]
+NORMAL_WORD [^\|\+\.\*\(\)\[\]\"\'\?\^\n\r]
+ENTER [\n\r]
 
 %%
 
@@ -14,7 +15,7 @@ NORMAL_WORD [A-Za-z0-9 ]
 {BACKSLASH}{NORMAL_WORD} { YY_FATAL_ERROR("invalid character after backslash"); }
 {OPERATOR} { return yytext[0]; }
 {NORMAL_WORD} { return CHAR; }
-"\n" { yyterminate(); }
+{ENTER} { yyterminate(); }
 
 %%
 

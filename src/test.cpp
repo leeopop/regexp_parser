@@ -11,6 +11,7 @@ extern "C"
 #include "regexp_yacc.h"
 }
 
+#include "RegularParseTree.hpp"
 
 int main()
 {
@@ -21,6 +22,8 @@ int main()
 		printf("%d\n", yyparse());
 		printf("%p\n", last_accept_node);
 		bool stop = last_accept_node->type == NodeType::EMPTY;
+		RegularParseTree tree(last_accept_node);
+		tree.printParseTree(std::cout);
 		clearNode();
 		yylex_destroy();
 		if(stop)

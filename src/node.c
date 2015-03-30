@@ -11,6 +11,7 @@
 
 static Node* head = 0;
 Node* last_accept_node = 0;
+static int index = 0;
 
 Node* makeNode(void)
 {
@@ -20,6 +21,7 @@ Node* makeNode(void)
 	ret->child = 0;
 	ret->data = 0;
 	ret->sibling = 0;
+	ret->index = index++;
 	head = ret;
 	return ret;
 }
@@ -33,4 +35,5 @@ void clearNode(void)
 		head = next;
 	}
 	last_accept_node = 0;
+	index = 0;
 }
