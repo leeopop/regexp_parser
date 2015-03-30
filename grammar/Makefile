@@ -9,7 +9,7 @@ $(GRAMMAR_DIR)/regexp_yacc.c $(GRAMMAR_DIR)/regexp_yacc.h: $(GRAMMAR_DIR)/regexp
 	$(YACC) --defines=$(GRAMMAR_DIR)/regexp_yacc.h --output=$(GRAMMAR_DIR)/regexp_yacc.c $(GRAMMAR_DIR)/regexp.y
 	
 $(GRAMMAR_DIR)/regexp_lex.c $(GRAMMAR_DIR)/regexp_lex.h: $(GRAMMAR_DIR)/regexp.l
-	$(LEX) --header-file=$(GRAMMAR_DIR)/regexp_lex.h --outfile=$(GRAMMAR_DIR)/regexp_lex.c -Cr $(GRAMMAR_DIR)/regexp.l
+	$(LEX) --header-file=$(GRAMMAR_DIR)/regexp_lex.h --outfile=$(GRAMMAR_DIR)/regexp_lex.c -Cefr $(GRAMMAR_DIR)/regexp.l
 	
 
-SRCS+= $(GRAMMAR_SRC)
+C_SRCS+= $(GRAMMAR_SRC)

@@ -1,5 +1,5 @@
 %{
-#include "regexp_yacc.h
+#include "regexp_yacc.h"
 %}
 
 BACKSLASH [\\]
