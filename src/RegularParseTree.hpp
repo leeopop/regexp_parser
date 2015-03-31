@@ -144,6 +144,13 @@ private:
 			name = std::string("[EPSILON]");
 			break;
 		}
+		case CHARACTER_CLASS:
+		{
+			char buf[128];
+			snprintf(buf, sizeof(buf), "CHARACTER_CLASS[%c]", currentNode->data);
+			name = std::string(buf);
+			break;
+		}
 		case CHARSET:
 		{
 			name = std::string("[CHARSET]");

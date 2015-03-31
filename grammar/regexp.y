@@ -96,8 +96,8 @@ charset:
 	'.'
 	{
 		Node* ret = makeNode();
-		ret->data = 0;
-		ret->type = EPSILON;
+		ret->data = '.';
+		ret->type = CHARACTER_CLASS;
 		$$ = ret;
 	}
 	
@@ -113,6 +113,30 @@ regular_primary:
 	'(' regular_expression ')'
 	{
 		$$ = $2;
+	}
+	|
+	'\"' '\"'
+	{
+		Node* ret = makeNode();
+		ret->data = 0;
+		ret->type = EPSILON;
+		$$ = ret;
+	}
+	|
+	'\"' vocabulary_list '\"'
+	{
+		if($2->sibling)
+		{
+			Node* ret = makeNode();
+			ret->data = 0;
+			ret->type = CONCAT;
+			ret->child = $2;
+			$$ = ret;
+		}
+		else
+		{
+			$$ = $2;
+		}
 	}
 	|
 	vocabulary

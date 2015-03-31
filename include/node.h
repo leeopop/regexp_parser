@@ -21,6 +21,7 @@ enum NodeType
 	CLOSURE_LEAST_ONCE, //+
 	CLOSURE_ONCE, //?
 	EPSILON, // .
+	CHARACTER_CLASS,
 	CHARSET, //[]
 	NEGATIVE_CHARSET, //[^asdf]
 	EMPTY //PHI
