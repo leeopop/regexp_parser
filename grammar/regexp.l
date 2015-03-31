@@ -3,8 +3,8 @@
 %}
 
 BACKSLASH [\\]
-OPERATOR [\|\+\.\*\(\)\[\]\"\'\?\^]
-SPECIAL [abfnrtv\\]
+OPERATOR [\|\+\.\*\(\)\[\]\"\'\?\^\\]
+SPECIAL [abfnrtv]
 NORMAL_WORD [^\|\+\.\*\(\)\[\]\"\'\?\^\n\r]
 ENTER [\n\r]
 
