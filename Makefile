@@ -25,7 +25,8 @@ CLEAN_FILE+= $(OBJS) $(C_OBJS) $(BUILD_DIR)/$(PROGRAM) $(DEPS)
 
 clean:
 	rm -rf $(CLEAN_FILE)
-	
+
+depend: $(DEPS)
 
 $(DEPS): $(SRCS) $(C_SRCS)
 	@$(CXX) $(CXXFLAGS) -MM $(SRCS) > $(DEPS);
