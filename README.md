@@ -2,10 +2,11 @@
 20144487 이근홍
 
 ##필요 라이브러리
+~~~~~~~~~~~~~{.sh}
 bison
 flex
-g++
-C++11 support
+g++ -std=c++11
+~~~~~~~~~~~~~
 Dot visualization software (for visualizing AST).
 
 ##빌드 방법
