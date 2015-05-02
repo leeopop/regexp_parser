@@ -12,6 +12,7 @@ extern "C"
 }
 
 #include "RegularParseTree.hpp"
+#include "Automata.hpp"
 
 int main()
 {

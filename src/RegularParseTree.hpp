@@ -15,6 +15,7 @@
 #include <list>
 #include <cassert>
 #include <iostream>
+#include "Automata.hpp"
 
 class TreeNode
 {
