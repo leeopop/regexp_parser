@@ -17,6 +17,7 @@
 #include <set>
 #include <map>
 #include <list>
+#include <algorithm>
 
 class Automata
 {
@@ -64,34 +65,74 @@ public:
 	void printAutomata(const std::string& name, std::ostream& out)
 	{
 		out<<"digraph "<<name<<" {"<<std::endl;
-		out<<start_state<<"\t[label=\""<<start_state<<"\", fillcolor=\"blue\"];"<<std::endl;
-		for(auto node : final_states)
-		{
-			out<<node<<"\t[label=\""<<node<<"\", fillcolor=\"green\"];"<<std::endl;
-		}
 		for(auto node : states)
 		{
+			std::string color = "white";
+			std::string shape = "circle";
 			if(node == start_state)
-				continue;
+				color = "cyan";
 			if(final_states.find(node) != final_states.end())
-				continue;
-			out<<node<<"\t[label=\""<<node<<"\", fillcolor=\"black\"];"<<std::endl;
+				shape = "doublecircle";
+			out<<node<<"\t[label=\""<<node<<"\", style=\"filled\", fillcolor=\""<<color<<"\", shape=\""<<shape<<"\"];"<<std::endl;
 		}
 		//int uniq_edge = 0;
+		std::map<std::pair<std::string, std::string>, std::set<char>> merge_edges;
 		for(auto edge : rules)
 		{
 			const std::string& from = edge.first.first;
-			std::string symbol(1, edge.first.second);
 			const std::string& to = edge.second;
-			std::string color = "black";
 
-			if(edge.first.second == 0)
+			auto iter = merge_edges.find(make_pair(from, to));
+			if(iter == merge_edges.end())
 			{
-				symbol = "_Epsilon";
-				color = "orange";
+				merge_edges.insert(make_pair(make_pair(from, to), std::set<char>()));
+				iter = merge_edges.find(make_pair(from, to));
+				assert(iter != merge_edges.end());
 			}
 
-			out<<from<<"\t->\t"<<to<<"\t[label=\""<<symbol<</*"_["<<uniq_edge++<<"]"<<*/"\", color=\""<<color<<"\"];"<<std::endl;
+			iter->second.insert(edge.first.second);
+
+
+		}
+		for(auto edge : merge_edges)
+		{
+			std::string color = "black";
+			auto symbols = edge.second;
+			out<<edge.first.first<<"\t->\t"<<edge.first.second<<"\t[label=\"";
+
+			std::vector<char> result(symbols.size() + vocab.size());
+			auto result_iter = std::set_difference (vocab.begin(), vocab.end(),
+					symbols.begin(), symbols.end(), result.begin());
+
+			result.resize(result_iter-result.begin());
+
+			if((symbols.find('\0') != symbols.end()) || (result.size() > (vocab.size()/2)))
+			{
+				for(auto voc : symbols)
+				{
+					if(voc == 0)
+					{
+						out<<"_Epsilon_, ";
+						color = "orange";
+					}
+					else
+						out<<(char)voc<<", ";
+				}
+			}
+			else if(result.size() == 0)
+			{
+				out<<"_VOCABULARY_";
+			}
+			else
+			{
+				out<<"__EXCEPT__, ";
+				for(auto voc : result)
+				{
+					out<<(char)voc<<", ";
+				}
+			}
+
+			out<<"\", style=\"bold\", color=\""<<color<<"\"];"<<std::endl;
 		}
 		out<<"}"<<std::endl;
 	}
@@ -159,11 +200,9 @@ public:
 			{
 				auto range = orig_rules.equal_range(make_pair(state, voc));
 				std::list<std::string> ambiguous;
-				auto iter = range.first;
-				while(iter != range.second)
+				for(auto iter = range.first; iter != range.second; ++iter)
 				{
 					ambiguous.push_back(iter->second);
-					iter++;
 				}
 				if(ambiguous.size() > 1)
 				{
@@ -179,15 +218,139 @@ public:
 				}
 			}
 			auto range = orig_rules.equal_range(make_pair(state, 0));
-			auto iter = range.first;
-			while(iter != range.second)
+			for(auto iter = range.first; iter != range.second; ++iter)
 			{
 				rules.insert(*iter);
-				iter++;
 			}
 		}
 
 		return Automata(vocab, all_state, start_state, final_state, rules);
+	}
+
+	static std::set<std::string> getEpsilonClosure(const Automata& orig, const std::string& state)
+	{
+		std::set<std::string> visited;
+		std::list<std::string> toVisit;
+		toVisit.push_back(state);
+		visited.insert(state);
+		auto rules = orig.getRules();
+
+		while(!toVisit.empty())
+		{
+			auto currentVisit = toVisit.front();
+			toVisit.pop_front();
+
+			auto range = rules.equal_range(make_pair(currentVisit, 0));
+
+			for(auto iter = range.first; iter != range.second; ++iter)
+			{
+				auto nextVisit = iter->second;
+				if(visited.find(nextVisit) != visited.end())
+					continue;
+				toVisit.push_back(nextVisit);
+				visited.insert(nextVisit);
+			}
+		}
+		return visited;
+	}
+
+	static Automata removeEpsilon(const Automata& orig, bool include_failure_state = false)
+	{
+		auto vocab = orig.getVocab();
+		auto rules = orig.getRules();
+		std::map<std::pair<int, char>, int> integer_rules;
+
+		char buf[4096];
+		int closure_index = 0;
+		std::map<std::set<std::string>, int> unique_closure;
+
+		std::list<std::set<std::string>> toVisit;
+		auto start_closure = getEpsilonClosure(orig, orig.getStartState());
+		toVisit.push_back(start_closure);
+		unique_closure.insert(make_pair(start_closure, closure_index++));
+
+		while(!toVisit.empty())
+		{
+			auto curVisit = toVisit.front();
+			toVisit.pop_front();
+			auto cur_iter = unique_closure.find(curVisit);
+			assert(cur_iter != unique_closure.end());
+			int cur_index = cur_iter->second;
+
+			for(auto voc : vocab)
+			{
+				std::set<std::string> vocab_closure;
+				for(auto each_state : curVisit)
+				{
+					auto range = rules.equal_range(make_pair(each_state, voc));
+
+					for(auto iter = range.first; iter != range.second; ++iter)
+					{
+						auto each_closure = getEpsilonClosure(orig, iter->second);
+						for(auto each_closure_item : each_closure)
+							vocab_closure.insert(each_closure_item);
+					}
+				}
+				if(vocab_closure.size() == 0 && !include_failure_state)
+					continue;
+
+				auto iter = unique_closure.find(vocab_closure);
+				int next_index = -1;
+				if(iter == unique_closure.end())
+				{
+					next_index = closure_index++;
+					unique_closure.insert(make_pair(vocab_closure, next_index));
+					toVisit.push_back(vocab_closure);
+				}
+				else
+				{
+					next_index = iter->second;
+				}
+				integer_rules.insert(std::pair<std::pair<int, char>, int>(std::pair<int, char>(cur_index, voc), next_index));
+			}
+		}
+
+		assert(unique_closure.find(start_closure) != unique_closure.end());
+		int new_start_index = unique_closure.find(start_closure)->second;
+		std::string new_start_state;
+		auto final_states = orig.getFinalStates();
+
+		std::set<std::string> new_states;
+		std::set<std::string> new_final_states;
+		for(auto each_closure : unique_closure)
+		{
+			auto closure = each_closure.first;
+			int each_index = each_closure.second;
+			snprintf(buf, sizeof(buf), "Closure_%d", each_index);
+			std::string closure_name(buf);
+
+			new_states.insert(closure_name);
+			if(each_index == new_start_index)
+				new_start_state = closure_name;
+
+			std::vector<std::string> result(closure.size() + final_states.size());
+			auto result_iter = std::set_intersection (closure.begin(), closure.end(),
+					final_states.begin(), final_states.end(), result.begin());
+
+			if(result_iter != result.begin())
+			{
+				new_final_states.insert(closure_name);
+			}
+		}
+
+		Rule new_rules;
+		for(auto each_rule : integer_rules)
+		{
+			int each_index = each_rule.first.first;
+			char voc = each_rule.first.second;
+			snprintf(buf, sizeof(buf), "Closure_%d", each_index);
+			std::string source_name(buf);
+			snprintf(buf, sizeof(buf), "Closure_%d", each_rule.second);
+			std::string destination_name(buf);
+			new_rules.insert(make_pair(make_pair(source_name, voc), destination_name));
+		}
+
+		return Automata(vocab, new_states, new_start_state, new_final_states, new_rules);
 	}
 private:
 	bool evaluate(std::string current_state, std::string input)
@@ -198,27 +361,24 @@ private:
 
 		//e-transitions
 		auto range = rules.equal_range(make_pair(current_state, 0));
-		auto iter = range.first;
-		while(iter != rules.end())
+
+		for(auto iter = range.first; iter != range.second; ++iter)
 		{
 			std::string next_state = iter->second;
 			bool ret = evaluate(next_state, input);
 			if(ret == true)
 				return true;
-			iter++;
 		}
 
 		char first_char = input[0];
 		std::string remaining = input.substr(1);
 		range = rules.equal_range(make_pair(current_state, first_char));
-		iter = range.first;
-		while(iter != range.second)
+		for(auto iter = range.first; iter != range.second; ++iter)
 		{
 			std::string next_state = iter->second;
 			bool ret = evaluate(next_state, remaining);
 			if(ret == true)
 				return true;
-			iter++;
 		}
 
 		return false;
