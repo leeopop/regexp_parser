@@ -200,7 +200,6 @@ public:
 		//---
 		while(true)
 		{
-
 			std::multimap<MergeTrans, MergeState> merge_rules;
 			for(auto rule : temp_rules)
 			{
@@ -211,27 +210,48 @@ public:
 			for(auto iter = merge_rules.begin(); iter != merge_rules.end(); iter = merge_rules.upper_bound(iter->first))
 			{
 				auto range = merge_rules.equal_range(iter->first);
-				std::set<MergeState> sameStates;
+				std::set<MergeState> sameStates_final;
+				std::set<MergeState> sameStates_nonfinal;
 				for(auto range_iter = range.first; range_iter != range.second; ++range_iter)
 				{
-					sameStates.insert(range_iter->second);
+					auto check_final = final_states.find(range_iter->second);
+					if(check_final == final_states.end())
+						sameStates_nonfinal.insert(range_iter->second);
+					else
+						sameStates_final.insert(range_iter->second);
 				}
 
-				if(sameStates.size() > 1)
+				if(sameStates_nonfinal.size() > 1)
 				{
 					MergeState merge;
-					for(auto mergeState : sameStates)
+					for(auto mergeState : sameStates_nonfinal)
 					{
 						for(auto state : mergeState)
 						{
 							merge.insert(state);
 						}
 					}
-					for(auto mergeState : sameStates)
+					for(auto mergeState : sameStates_nonfinal)
 					{
 						merged_states.insert(make_pair(mergeState, merge));
-						merged_states_to_rules.insert(make_pair(merge, iter->first));
 					}
+					merged_states_to_rules.insert(make_pair(merge, iter->first));
+				}
+				if(sameStates_final.size() > 1)
+				{
+					MergeState merge;
+					for(auto mergeState : sameStates_final)
+					{
+						for(auto state : mergeState)
+						{
+							merge.insert(state);
+						}
+					}
+					for(auto mergeState : sameStates_final)
+					{
+						merged_states.insert(make_pair(mergeState, merge));
+					}
+					merged_states_to_rules.insert(make_pair(merge, iter->first));
 				}
 			}
 
@@ -912,7 +932,7 @@ private:
 			//name = std::string("[EMPTY SET]");
 			snprintf(buf, sizeof(buf), "State_%d_Empty_start", uniq_index);
 			std::string e_start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "State_%d_Empty_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Empty_final", uniq_index);
 			std::string e_final_state_name = std::string(buf);
 			uniq_index++;
 
