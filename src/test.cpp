@@ -28,6 +28,9 @@ int main()
 
 			Automata rough_automata = Automata::createEpsilonAutomata(last_accept_node);
 			rough_automata.printAutomata("rough_automata", std::cout);
+
+			Automata normal_NFA = Automata::removeAmbiguity(rough_automata);
+			normal_NFA.printAutomata("normal_NFA", std::cout);
 		}
 		clearNode();
 		yylex_destroy();

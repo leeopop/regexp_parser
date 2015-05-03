@@ -15,9 +15,8 @@
 #include <cassert>
 #include <vector>
 #include <set>
-#include <set>
 #include <map>
-#include <map>
+#include <list>
 
 class Automata
 {
@@ -139,6 +138,57 @@ public:
 		};
 		return generateAutomata(vocab, currentNode, uniq_index);
 	}
+
+	static Automata removeAmbiguity(const Automata& orig)
+	{
+		char buf[4096];
+		std::set<std::string> all_state;
+		std::set<std::string> final_state;
+		std::string start_state;
+		Rule rules;
+		auto vocab = orig.getVocab();
+		auto orig_rules = orig.getRules();
+
+		start_state = orig.getStartState();
+		for(auto finals : orig.getFinalStates())
+			final_state.insert(finals);
+		for(auto state : orig.getStates())
+		{
+			all_state.insert(state);
+			for(auto voc : vocab)
+			{
+				auto range = orig_rules.equal_range(make_pair(state, voc));
+				std::list<std::string> ambiguous;
+				auto iter = range.first;
+				while(iter != range.second)
+				{
+					ambiguous.push_back(iter->second);
+					iter++;
+				}
+				if(ambiguous.size() > 1)
+				{
+					snprintf(buf, sizeof(buf), "%s_remove_ambiguity_with_%c", state.c_str(), voc);
+					std::string temp_state_name = std::string(buf);
+					rules.insert(make_pair(make_pair(state, voc), temp_state_name));
+					for(auto ambiguous_state : ambiguous)
+						rules.insert(make_pair(make_pair(temp_state_name, 0), ambiguous_state));
+				}
+				else if(ambiguous.size() == 1)
+				{
+					rules.insert(make_pair(make_pair(state, voc), ambiguous.front()));
+				}
+			}
+			auto range = orig_rules.equal_range(make_pair(state, 0));
+			auto iter = range.first;
+			while(iter != range.second)
+			{
+				rules.insert(*iter);
+				iter++;
+			}
+		}
+
+		return Automata(vocab, all_state, start_state, final_state, rules);
+	}
 private:
 	bool evaluate(std::string current_state, std::string input)
 	{
@@ -147,8 +197,8 @@ private:
 				return true;
 
 		//e-transitions
-		std::pair<std::string, char> e_pair(current_state, 0);
-		auto iter = rules.find(e_pair);
+		auto range = rules.equal_range(make_pair(current_state, 0));
+		auto iter = range.first;
 		while(iter != rules.end())
 		{
 			std::string next_state = iter->second;
@@ -160,9 +210,9 @@ private:
 
 		char first_char = input[0];
 		std::string remaining = input.substr(1);
-		std::pair<std::string, char> current_pair(current_state, first_char);
-		iter = rules.find(e_pair);
-		while(iter != rules.end())
+		range = rules.equal_range(make_pair(current_state, first_char));
+		iter = range.first;
+		while(iter != range.second)
 		{
 			std::string next_state = iter->second;
 			bool ret = evaluate(next_state, remaining);
@@ -219,8 +269,6 @@ private:
 			std::string mid_state_name = start_state_name;
 			while(currentChild != nullptr)
 			{
-
-
 				Automata currentAutomata = generateAutomata(vocab, currentChild, uniq_index);
 				rules.insert(make_pair(make_pair(mid_state_name, 0), currentAutomata.getStartState()));
 
@@ -249,51 +297,38 @@ private:
 			std::set<std::string> final_states;
 			final_states.insert(final_state_name);
 			return Automata(vocab,states, start_state_name, final_states, rules);
-			break;
 		}
 		case UNION:
 		{
-			//name = std::string("<UNION[|]>");
-			Automata leftAutomata = generateAutomata(vocab, currentNode->child, uniq_index);
-			Automata rightAutomata = generateAutomata(vocab, currentNode->child->sibling, uniq_index);
-
-			snprintf(buf, sizeof(buf), "State_%d_Union_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Concat_start", uniq_index);
 			std::string start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "State_%d_Union_final", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Concat_final", uniq_index);
 			std::string final_state_name = std::string(buf);
 			uniq_index++;
 
-			std::string left_start_state = leftAutomata.getStartState();
-			std::string right_start_state = rightAutomata.getStartState();
 
 			std::set<std::string> states;
 			states.insert(start_state_name);
 			states.insert(final_state_name);
-			for(auto left_state : leftAutomata.getStates())
-				states.insert(left_state);
-			for(auto right_state : rightAutomata.getStates())
-				states.insert(right_state);
 
 			std::multimap<std::pair<std::string, char>, std::string> rules;
-			{//left -> mid
-				rules.insert(make_pair(make_pair(start_state_name, 0), left_start_state));
-				for(auto states : leftAutomata.getFinalStates())
-					rules.insert(make_pair(make_pair(states, 0), final_state_name));
-			}
-			{//mid->right
-				rules.insert(make_pair(make_pair(start_state_name, 0), right_start_state));
-				for(auto states : rightAutomata.getFinalStates())
-					rules.insert(make_pair(make_pair(states, 0), final_state_name));
-			}
+			const Node* currentChild = currentNode->child;
 
-			for(auto sub_rules : leftAutomata.getRules())
-				rules.insert(sub_rules);
-			for(auto sub_rules : rightAutomata.getRules())
-				rules.insert(sub_rules);
-			for(auto child_state : leftAutomata.getStates())
-				states.insert(child_state);
-			for(auto child_state : rightAutomata.getStates())
-				states.insert(child_state);
+			std::string mid_state_name = start_state_name;
+			while(currentChild != nullptr)
+			{
+				Automata currentAutomata = generateAutomata(vocab, currentChild, uniq_index);
+				rules.insert(make_pair(make_pair(start_state_name, 0), currentAutomata.getStartState()));
+
+				for(auto finals : currentAutomata.final_states)
+					rules.insert(make_pair(make_pair(finals, 0), final_state_name));
+				for(auto child_rule : currentAutomata.getRules())
+					rules.insert(child_rule);
+				for(auto child_state : currentAutomata.getStates())
+					states.insert(child_state);
+
+				currentChild = currentChild->sibling;
+			}
 
 			std::set<std::string> final_states;
 			final_states.insert(final_state_name);
@@ -340,7 +375,6 @@ private:
 			std::set<std::string> final_states;
 			final_states.insert(final_state_name);
 			return Automata(vocab,states, start_state_name, final_states, rules);
-			break;
 		}
 		case CLOSURE_LEAST_ONCE:
 		{
