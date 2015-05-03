@@ -25,6 +25,9 @@ int main()
 			stop = last_accept_node->type == NodeType::EMPTY;
 			RegularParseTree tree(last_accept_node);
 			tree.printParseTree(std::cout);
+
+			Automata rough_automata = Automata::createEpsilonAutomata(last_accept_node);
+			rough_automata.printAutomata("rough_automata", std::cout);
 		}
 		clearNode();
 		yylex_destroy();

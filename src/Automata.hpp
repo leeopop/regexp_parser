@@ -30,16 +30,26 @@ private:
 
 	std::string current_state;
 public:
-	const std::set<char> default_vocabulary = {
-			'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
-			'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F',
-			'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
-			'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-			' ', '|', '+', '.', '*', '(', ')', '[', ']', '\"', '\'', '?', '^', '\\'
-	};
 
 	typedef std::multimap<std::pair<std::string, char>, std::string> Rule;
-	Automata(std::set<char> vocab,
+	Automata(std::set<std::string> states,
+			std::string start_state,
+			std::set<std::string> final_states,
+			std::multimap<std::pair<std::string, char>, std::string> rules)
+	{
+		this->vocab = {
+				'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
+				'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F',
+				'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+				'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+				' ', '|', '+', '.', '*', '(', ')', '[', ']', '\"', '\'', '?', '^', '\\'
+		};
+		this->states = states;
+		this->start_state = start_state;
+		this->final_states = final_states;
+		this->rules = rules;
+	}
+	Automata(const std::set<char> &vocab,
 			std::set<std::string> states,
 			std::string start_state,
 			std::set<std::string> final_states,
@@ -50,6 +60,41 @@ public:
 		this->start_state = start_state;
 		this->final_states = final_states;
 		this->rules = rules;
+	}
+
+	void printAutomata(const std::string& name, std::ostream& out)
+	{
+		out<<"digraph "<<name<<" {"<<std::endl;
+		out<<start_state<<"\t[label=\""<<start_state<<"\", fillcolor=\"blue\"];"<<std::endl;
+		for(auto node : final_states)
+		{
+			out<<node<<"\t[label=\""<<node<<"\", fillcolor=\"green\"];"<<std::endl;
+		}
+		for(auto node : states)
+		{
+			if(node == start_state)
+				continue;
+			if(final_states.find(node) != final_states.end())
+				continue;
+			out<<node<<"\t[label=\""<<node<<"\", fillcolor=\"black\"];"<<std::endl;
+		}
+		//int uniq_edge = 0;
+		for(auto edge : rules)
+		{
+			const std::string& from = edge.first.first;
+			std::string symbol(1, edge.first.second);
+			const std::string& to = edge.second;
+			std::string color = "black";
+
+			if(edge.first.second == 0)
+			{
+				symbol = "_Epsilon";
+				color = "orange";
+			}
+
+			out<<from<<"\t->\t"<<to<<"\t[label=\""<<symbol<</*"_["<<uniq_edge++<<"]"<<*/"\", color=\""<<color<<"\"];"<<std::endl;
+		}
+		out<<"}"<<std::endl;
 	}
 
 	const std::set<std::string>& getFinalStates() const {
@@ -80,6 +125,18 @@ public:
 	static Automata createEpsilonAutomata(std::set<char> vocab, const Node* currentNode)
 	{
 		int uniq_index = 0;
+		return generateAutomata(vocab, currentNode, uniq_index);
+	}
+	static Automata createEpsilonAutomata(const Node* currentNode)
+	{
+		int uniq_index = 0;
+		std::set<char> vocab = {
+				'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
+				'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F',
+				'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+				'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+				' ', '|', '+', '.', '*', '(', ')', '[', ']', '\"', '\'', '?', '^', '\\'
+		};
 		return generateAutomata(vocab, currentNode, uniq_index);
 	}
 private:
@@ -124,9 +181,9 @@ private:
 		{
 		case VOCABULARY:
 		{
-			snprintf(buf, sizeof(buf), "%d_Verb[%c]_start", uniq_index, currentNode->data);
+			snprintf(buf, sizeof(buf), "State_%d_Verb_%c_start", uniq_index, currentNode->data);
 			std::string start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_Verb[%c]_final", uniq_index, currentNode->data);
+			snprintf(buf, sizeof(buf), "State_%d_Verb_%c_final", uniq_index, currentNode->data);
 			std::string final_state_name = std::string(buf);
 			uniq_index++;
 
@@ -143,45 +200,51 @@ private:
 		}
 		case CONCAT:
 		{
-			Automata leftAutomata = generateAutomata(vocab, currentNode->child, uniq_index);
-			Automata rightAutomata = generateAutomata(vocab, currentNode->child->sibling, uniq_index);
-
-			snprintf(buf, sizeof(buf), "%d_Concat_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Concat_start", uniq_index);
 			std::string start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_Concat_mid", uniq_index);
-			std::string mid_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_Concat_final", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Concat_final", uniq_index);
 			std::string final_state_name = std::string(buf);
+			int current_uniq = uniq_index;
 			uniq_index++;
 
-			std::string left_start_state = leftAutomata.getStartState();
-			std::string right_start_state = rightAutomata.getStartState();
 
 			std::set<std::string> states;
 			states.insert(start_state_name);
-			states.insert(mid_state_name);
 			states.insert(final_state_name);
-			for(auto left_state : leftAutomata.getStates())
-				states.insert(left_state);
-			for(auto right_state : rightAutomata.getStates())
-				states.insert(right_state);
 
 			std::multimap<std::pair<std::string, char>, std::string> rules;
-			{//left -> mid
-				rules.insert(make_pair(make_pair(start_state_name, 0), left_start_state));
-				for(auto states : leftAutomata.getFinalStates())
-					rules.insert(make_pair(make_pair(states, 0), mid_state_name));
-			}
-			{//mid->right
-				rules.insert(make_pair(make_pair(mid_state_name, 0), right_start_state));
-				for(auto states : rightAutomata.getFinalStates())
-					rules.insert(make_pair(make_pair(states, 0), final_state_name));
-			}
+			const Node* currentChild = currentNode->child;
 
-			for(auto sub_rules : leftAutomata.getRules())
-				rules.insert(sub_rules);
-			for(auto sub_rules : rightAutomata.getRules())
-				rules.insert(sub_rules);
+			int mid_index = 0;
+			std::string mid_state_name = start_state_name;
+			while(currentChild != nullptr)
+			{
+
+
+				Automata currentAutomata = generateAutomata(vocab, currentChild, uniq_index);
+				rules.insert(make_pair(make_pair(mid_state_name, 0), currentAutomata.getStartState()));
+
+				if(currentChild->sibling != nullptr)
+				{
+					snprintf(buf, sizeof(buf), "State_%d_Concat_mid_%d", current_uniq, mid_index);
+					mid_state_name = std::string(buf);
+				}
+				else
+				{
+					mid_state_name = final_state_name;
+				}
+				states.insert(mid_state_name);
+
+				for(auto finals : currentAutomata.final_states)
+					rules.insert(make_pair(make_pair(finals, 0), mid_state_name));
+				for(auto child_rule : currentAutomata.getRules())
+					rules.insert(child_rule);
+				for(auto child_state : currentAutomata.getStates())
+					states.insert(child_state);
+
+				mid_index++;
+				currentChild = currentChild->sibling;
+			}
 
 			std::set<std::string> final_states;
 			final_states.insert(final_state_name);
@@ -194,9 +257,9 @@ private:
 			Automata leftAutomata = generateAutomata(vocab, currentNode->child, uniq_index);
 			Automata rightAutomata = generateAutomata(vocab, currentNode->child->sibling, uniq_index);
 
-			snprintf(buf, sizeof(buf), "%d_Union_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Union_start", uniq_index);
 			std::string start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_Union_final", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Union_final", uniq_index);
 			std::string final_state_name = std::string(buf);
 			uniq_index++;
 
@@ -227,6 +290,10 @@ private:
 				rules.insert(sub_rules);
 			for(auto sub_rules : rightAutomata.getRules())
 				rules.insert(sub_rules);
+			for(auto child_state : leftAutomata.getStates())
+				states.insert(child_state);
+			for(auto child_state : rightAutomata.getStates())
+				states.insert(child_state);
 
 			std::set<std::string> final_states;
 			final_states.insert(final_state_name);
@@ -237,9 +304,9 @@ private:
 			//name = std::string("<CLOSURE[*]>");
 			Automata childAutomata = generateAutomata(vocab, currentNode->child, uniq_index);
 
-			snprintf(buf, sizeof(buf), "%d_Closure_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Closure_start", uniq_index);
 			std::string start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_Closure_final", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Closure_final", uniq_index);
 			std::string final_state_name = std::string(buf);
 			uniq_index++;
 
@@ -267,6 +334,8 @@ private:
 
 			for(auto sub_rules : childAutomata.getRules())
 				rules.insert(sub_rules);
+			for(auto child_state : childAutomata.getStates())
+				states.insert(child_state);
 
 			std::set<std::string> final_states;
 			final_states.insert(final_state_name);
@@ -278,9 +347,9 @@ private:
 			//name = std::string("<CLOSURE[+]>");
 			Automata childAutomata = generateAutomata(vocab, currentNode->child, uniq_index);
 
-			snprintf(buf, sizeof(buf), "%d_Closure_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Closure_start", uniq_index);
 			std::string start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_Closure_final", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Closure_final", uniq_index);
 			std::string final_state_name = std::string(buf);
 			uniq_index++;
 
@@ -308,6 +377,8 @@ private:
 
 			for(auto sub_rules : childAutomata.getRules())
 				rules.insert(sub_rules);
+			for(auto child_state : childAutomata.getStates())
+				states.insert(child_state);
 
 			std::set<std::string> final_states;
 			final_states.insert(final_state_name);
@@ -318,9 +389,9 @@ private:
 			//name = std::string("<CLOSURE[?]>");
 			Automata childAutomata = generateAutomata(vocab, currentNode->child, uniq_index);
 
-			snprintf(buf, sizeof(buf), "%d_Closure_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Closure_start", uniq_index);
 			std::string start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_Closure_final", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Closure_final", uniq_index);
 			std::string final_state_name = std::string(buf);
 			uniq_index++;
 
@@ -348,6 +419,8 @@ private:
 
 			for(auto sub_rules : childAutomata.getRules())
 				rules.insert(sub_rules);
+			for(auto child_state : childAutomata.getStates())
+				states.insert(child_state);
 
 			std::set<std::string> final_states;
 			final_states.insert(final_state_name);
@@ -357,7 +430,7 @@ private:
 		{
 			//name = std::string("[EPSILON]");
 
-			snprintf(buf, sizeof(buf), "%d_Epsilon", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Epsilon", uniq_index);
 			std::string e_state_name = std::string(buf);
 			uniq_index++;
 
@@ -372,9 +445,9 @@ private:
 		}
 		case CHARACTER_CLASS:
 		{
-			snprintf(buf, sizeof(buf), "%d_Character_class[%c]_start", uniq_index, currentNode->data);
+			snprintf(buf, sizeof(buf), "State_%d_Character_class[%c]_start", uniq_index, currentNode->data);
 			std::string start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_Character_class[%c]_final", uniq_index, currentNode->data);
+			snprintf(buf, sizeof(buf), "State_%d_Character_class[%c]_final", uniq_index, currentNode->data);
 			std::string final_state_name = std::string(buf);
 			uniq_index++;
 
@@ -401,9 +474,9 @@ private:
 		case CHARSET:
 		{
 			//name = std::string("[CHARSET]");
-			snprintf(buf, sizeof(buf), "%d_CHARSET_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_CHARSET_start", uniq_index);
 			std::string start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_CHARSET_final", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_CHARSET_final", uniq_index);
 			std::string final_state_name = std::string(buf);
 			uniq_index++;
 
@@ -427,9 +500,9 @@ private:
 		case NEGATIVE_CHARSET:
 		{
 			//name = std::string("[^CHARSET]");
-			snprintf(buf, sizeof(buf), "%d_NEGATIVE_CHARSET_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_NEGATIVE_CHARSET_start", uniq_index);
 			std::string start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_NEGATIVE_CHARSET_final", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_NEGATIVE_CHARSET_final", uniq_index);
 			std::string final_state_name = std::string(buf);
 			uniq_index++;
 
@@ -458,9 +531,9 @@ private:
 		case EMPTY:
 		{
 			//name = std::string("[EMPTY SET]");
-			snprintf(buf, sizeof(buf), "%d_Empty_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Empty_start", uniq_index);
 			std::string e_start_state_name = std::string(buf);
-			snprintf(buf, sizeof(buf), "%d_Empty_start", uniq_index);
+			snprintf(buf, sizeof(buf), "State_%d_Empty_start", uniq_index);
 			std::string e_final_state_name = std::string(buf);
 			uniq_index++;
 
