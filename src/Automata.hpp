@@ -27,8 +27,6 @@ private:
 	std::string start_state;
 	std::set<std::string> final_states;
 	std::multimap<std::pair<std::string, char>, std::string> rules;
-
-	std::string current_state;
 public:
 
 	typedef std::multimap<std::pair<std::string, char>, std::string> Rule;
@@ -91,8 +89,6 @@ public:
 			}
 
 			iter->second.insert(edge.first.second);
-
-
 		}
 		for(auto edge : merge_edges)
 		{
@@ -160,6 +156,195 @@ public:
 	bool evaluate(std::string input)
 	{
 		return false;
+	}
+
+	static Automata minimalize(const Automata& orig)
+	{
+		typedef std::set<std::string> MergeState;
+		typedef std::set<std::pair<char, MergeState>> MergeTrans;
+		std::set<MergeState> all_state;
+		std::set<MergeState> final_states;
+		MergeState start_state;
+		std::map<MergeState, MergeTrans> temp_rules;
+
+		start_state.insert(orig.getStartState());
+		for(auto state : orig.getStates())
+		{
+			MergeState item;
+			item.insert(state);
+			all_state.insert(item);
+		}
+		for(auto state : orig.getFinalStates())
+		{
+			MergeState item;
+			item.insert(state);
+			final_states.insert(item);
+		}
+		for(auto rule : orig.getRules())
+		{
+			MergeState src;
+			src.insert(rule.first.first);
+			MergeState dest;
+			dest.insert(rule.second);
+			char voc = rule.first.second;
+			auto iter = temp_rules.find(src);
+			if(iter == temp_rules.end())
+			{
+				temp_rules.insert(make_pair(src, MergeTrans()));
+				iter = temp_rules.find(src);
+			}
+
+			iter->second.insert(make_pair(voc, dest));
+		}
+
+		//---
+		while(true)
+		{
+
+			std::multimap<MergeTrans, MergeState> merge_rules;
+			for(auto rule : temp_rules)
+			{
+				merge_rules.insert(make_pair(rule.second, rule.first));
+			}
+			std::map<MergeState, MergeState> merged_states;
+			std::map<MergeState, MergeTrans> merged_states_to_rules;
+			for(auto iter = merge_rules.begin(); iter != merge_rules.end(); iter = merge_rules.upper_bound(iter->first))
+			{
+				auto range = merge_rules.equal_range(iter->first);
+				std::set<MergeState> sameStates;
+				for(auto range_iter = range.first; range_iter != range.second; ++range_iter)
+				{
+					sameStates.insert(range_iter->second);
+				}
+
+				if(sameStates.size() > 1)
+				{
+					MergeState merge;
+					for(auto mergeState : sameStates)
+					{
+						for(auto state : mergeState)
+						{
+							merge.insert(state);
+						}
+					}
+					for(auto mergeState : sameStates)
+					{
+						merged_states.insert(make_pair(mergeState, merge));
+						merged_states_to_rules.insert(make_pair(merge, iter->first));
+					}
+				}
+			}
+
+			if(merged_states.size() == 0)
+				break;
+
+
+			{
+				auto iter = merged_states.find(start_state);
+				if(iter != merged_states.end())
+					start_state = iter->second;
+			}
+			std::set<MergeState> new_all_state;
+			std::set<MergeState> new_final_states;
+			std::map<MergeState, MergeTrans> new_temp_rules;
+			for(auto mergeState : all_state)
+			{
+				auto iter = merged_states.find(mergeState);
+				if(iter == merged_states.end())
+					new_all_state.insert(mergeState);
+				else if(new_all_state.find(iter->second) == new_all_state.end())
+					new_all_state.insert(iter->second);
+			}
+			for(auto mergeState : final_states)
+			{
+				auto iter = merged_states.find(mergeState);
+				if(iter == merged_states.end())
+					new_final_states.insert(mergeState);
+				else if(new_final_states.find(iter->second) == new_final_states.end())
+					new_final_states.insert(iter->second);
+			}
+			for(auto rule : temp_rules)
+			{
+				auto current_state = rule.first;
+				auto current_rule = rule.second;
+				auto iter_state = merged_states.find(current_state);
+				if(iter_state != merged_states.end())
+				{
+					current_state = iter_state->second;
+					auto iter_merged_rule = merged_states_to_rules.find(current_state);
+					assert(iter_merged_rule != merged_states_to_rules.end());
+					current_rule = iter_merged_rule->second;
+				}
+
+				auto iter_rule = new_temp_rules.find(current_state);
+				if(iter_rule == new_temp_rules.end())
+				{
+					MergeTrans new_trans;
+					for(auto prev_rule : current_rule)
+					{
+						auto dest = prev_rule.second;
+						auto dest_iter = merged_states.find(dest);
+						if(dest_iter != merged_states.end())
+							dest = dest_iter->second;
+						new_trans.insert(make_pair(prev_rule.first, dest));
+					}
+					new_temp_rules.insert(make_pair(current_state, new_trans));
+				}
+			}
+
+			all_state = new_all_state;
+			final_states = new_final_states;
+			temp_rules = new_temp_rules;
+
+		}
+		//--
+
+		std::set<std::string> merged_all_state;
+		std::set<std::string> merged_final_state;
+		std::string merged_start_state;
+		Rule merged_rules;
+
+		char buf[4096];
+		std::map<MergeState, std::string> name_mapping;
+		int name_index = 0;
+		for(auto state : all_state)
+		{
+			snprintf(buf, sizeof(buf), "Merged_State_%d___%d", name_index++, (int)state.size());
+			std::string state_name(buf);
+			name_mapping.insert(make_pair(state, state_name));
+			merged_all_state.insert(state_name);
+		}
+		{
+			auto iter = name_mapping.find(start_state);
+			assert(iter != name_mapping.end());
+			merged_start_state = iter->second;
+		}
+		for(auto state : final_states)
+		{
+			auto iter = name_mapping.find(state);
+			assert(iter != name_mapping.end());
+			merged_final_state.insert(iter->second);
+		}
+		for(auto rule : temp_rules)
+		{
+			auto state = rule.first;
+			auto iter = name_mapping.find(state);
+			assert(iter != name_mapping.end());
+			auto src = iter->second;
+
+			for(auto trans : rule.second)
+			{
+				char voc = trans.first;
+				auto state2 = trans.second;
+				auto iter2 = name_mapping.find(state2);
+				assert(iter2 != name_mapping.end());
+				auto dest = iter2->second;
+
+				merged_rules.insert(make_pair(make_pair(src, voc), dest));
+			}
+		}
+
+		return Automata(orig.vocab, merged_all_state, merged_start_state, merged_final_state, merged_rules);
 	}
 
 	static Automata createEpsilonAutomata(std::set<char> vocab, const Node* currentNode)

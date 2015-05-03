@@ -34,6 +34,9 @@ int main()
 
 			Automata DFA = Automata::removeEpsilon(normal_NFA, true);
 			DFA.printAutomata("DFA", std::cout);
+
+			Automata mDFA = Automata::minimalize(DFA);
+			mDFA.printAutomata("mDFA", std::cout);
 		}
 		clearNode();
 		yylex_destroy();
