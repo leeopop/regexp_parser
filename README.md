@@ -55,6 +55,12 @@ AST를 출력해 준다.
 
 #Project2: Regular Expression의 AST를 보고 minimal state DFA 만들기
 
+프로그램을 실행하면 DOT형식의 여러 그래프를 생성한다.
+오토마타의 경우에는 cyan 색으로 칠해진 곳이 start state,
+두 겹을 된 동그라미는 final state들을 의미한다.
+각 edge는 기본적으로 문자를 만났을 때의 rule이다.
+문자 집합이 여집합을 나타낼 경우에는 __EXCEPT__로 시작한다.
+
 ##오토마타 만들기
 ~~~~~~~~~~~~~{.cpp}
 Automata rough_automata = Automata::createEpsilonAutomata(last_accept_node);
