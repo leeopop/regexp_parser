@@ -51,4 +51,37 @@ make all
 build안에 regexp 바이너리를 실행한다.
 regular expression을 입력하고 엔터를 누르면 Dot 형식으로 (http://en.wikipedia.org/wiki/DOT_%28graph_description_language%29)
 AST를 출력해 준다.
-이 형식은 Tulip 등의 프로그램을 통하여 그림으로 만들 수 있다.
+이 형식은 Tulip, graphviz 등의 프로그램을 통하여 그림으로 만들 수 있다.
+
+#Project2: Regular Expression의 AST를 보고 minimal state DFA 만들기
+
+##오토마타 만들기
+~~~~~~~~~~~~~{.cpp}
+Automata rough_automata = Automata::createEpsilonAutomata(last_accept_node);
+~~~~~~~~~~~~~
+Epsilon을 사용하는 오토마타를 만든다.
+이 결과는 digraph rough_automata 를 생성한다.
+
+##Ambiguity 제거
+~~~~~~~~~~~~~{.cpp}
+Automata normal_NFA = Automata::removeAmbiguity(rough_automata);
+~~~~~~~~~~~~~
+일반적인 오토마타는 ambiguity를 포함할 수 있다 (문자 'a'를 만났을 때 갈 수 있는 state가 2개 이상).
+이를 epsilon만을 사용하도록 고쳐준다.
+물론 정규 언어로 만든 오토마타에는 이러한 ambiguity가 없다.
+이 결과는 digraph normal_NFA를 생성한다.
+
+##Epsilon 제거
+~~~~~~~~~~~~~{.cpp}
+Automata DFA = Automata::removeEpsilon(normal_NFA, true);
+~~~~~~~~~~~~~
+NFA에서 Epsilon closure를 취하여 DFA로 만든다.
+두 번째 매개변수는 Failure state를 포함할 것인가의 여부를 나타낸다.
+이 결과는 digraph DFA를 생성한다.
+
+##Equivalent State 합병
+~~~~~~~~~~~~~{.cpp}
+Automata mDFA = Automata::minimalize(DFA);
+~~~~~~~~~~~~~
+DFA에서 equivalent state들을 모두 합병하여 minimal-DFA를 만든다.
+이 결과는 digraph mDFA를 생성한다.
