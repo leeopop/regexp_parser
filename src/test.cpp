@@ -31,27 +31,6 @@ int main()
 
 			Automata normal_NFA = Automata::removeAmbiguity(rough_automata);
 
-			if(false)
-			{ // works with 1*(01*0)*1*
-				auto vocab = normal_NFA.getVocab();
-				auto all_state = normal_NFA.getStates();
-				auto start = normal_NFA.getStartState();
-				auto final = normal_NFA.getFinalStates();
-				auto rule = normal_NFA.getRules();
-
-				rule.insert(make_pair(std::pair<std::string, char>("State_0_Concat_start", 'x'), "Dummy1"));
-				rule.insert(make_pair(std::pair<std::string, char>("State_2_Closure_start", 'x'), "Dummy2"));
-				rule.insert(make_pair(std::pair<std::string, char>("State_3_Concat_mid_0", 'x'), "Dummy3"));
-
-				all_state.insert("Dummy1");
-				all_state.insert("Dummy2");
-				all_state.insert("Dummy3");
-				rule.insert(make_pair(std::pair<std::string, char>("Dummy1", 'y'), "Dummy2"));
-				rule.insert(make_pair(std::pair<std::string, char>("Dummy2", 'z'), "Dummy3"));
-
-				normal_NFA = Automata(vocab, all_state, start, final, rule);
-			}
-
 			normal_NFA.printAutomata("normal_NFA", std::cout);
 
 			Automata DFA = Automata::removeEpsilon(normal_NFA, true);
